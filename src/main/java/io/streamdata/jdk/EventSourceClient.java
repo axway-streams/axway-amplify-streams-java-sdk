@@ -22,7 +22,7 @@ public interface EventSourceClient {
      * @return a client to be
      * @throws URISyntaxException if the URL to poll is not a valid URL
      */
-    default EventSourceClient createEventSource(String apiUrl, String appKey) throws URISyntaxException {
+    static EventSourceClient createEventSource(String apiUrl, String appKey) throws URISyntaxException {
         return new EventSourceClientImpl(apiUrl, appKey);
     }
 

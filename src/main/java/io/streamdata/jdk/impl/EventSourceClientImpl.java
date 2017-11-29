@@ -47,6 +47,7 @@ public class EventSourceClientImpl implements EventSourceClient {
 
     /**
      * Build the url to be called by {@link #open()}
+     *
      * @param apiUrl the api URL
      * @param appKey the key
      * @throws URISyntaxException when the polling URL is not OK
@@ -114,7 +115,6 @@ public class EventSourceClientImpl implements EventSourceClient {
         }
     }
 
-
     @Override
     public JsonNode getCurrentData() {
         return this.currentData.get();
@@ -133,8 +133,14 @@ public class EventSourceClientImpl implements EventSourceClient {
         Preconditions.checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
 
 
-        return Executors.newSingleThreadExecutor().submit(() -> {
+        return Executors.newSingleThreadExecutor().submit(this.eventSourceTask());
 
+
+    }
+
+
+    private Runnable eventSourceTask() {
+        return () -> {
             try {
 
                 this.eventSource = new EventSource(this.webClient.target(this.url.toString())) {
@@ -182,11 +188,12 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 } catch (IOException e) {
                                     EventSourceClientImpl.this.onFailureCallback.accept(e);
                                 }
-
                                 break;
+
                             case "error":
                                 EventSourceClientImpl.this.onErrorCallback.accept(eventData);
                                 break;
+
                             default:
                                 LOGGER.warn("Unhandled event received with name '{}' and data : {}", eventName, eventData);
 
@@ -201,12 +208,9 @@ public class EventSourceClientImpl implements EventSourceClient {
             } catch (Exception e) {
                 EventSourceClientImpl.this.onFailureCallback.accept(e);
                 this.close();
+                System.exit(1);
             }
-
-
-        });
-
-
+        };
     }
 
 
