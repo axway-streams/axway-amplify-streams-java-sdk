@@ -133,17 +133,10 @@ public class EventSourceClientImpl implements EventSourceClient {
         Preconditions.checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
 
 
-        return Executors.newSingleThreadExecutor().submit(this.eventSourceTask());
-
-
-    }
-
-
-    private Runnable eventSourceTask() {
-        return () -> {
+        return Executors.newSingleThreadExecutor().submit(() -> {
             try {
 
-                this.eventSource = new EventSource(this.webClient.target(this.url.toString())) {
+                this.eventSource = new EventSource(EventSourceClientImpl.this.webClient.target(EventSourceClientImpl.this.url.toString())) {
 
                     @Override
                     public void onEvent(InboundEvent inboundEvent) {
@@ -170,20 +163,20 @@ public class EventSourceClientImpl implements EventSourceClient {
                             case "patch":
                                 try {
                                     // read the patch
-                                    JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
+                                    JsonNode lastPatch1 = jsonObjectMapper.readTree(eventData);
 
                                     // apply the patch to the last know data value
-                                    JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
+                                    JsonNode data = JsonPatch.apply(lastPatch1, currentData.get());
 
                                     // set it in a thread safe and atomic fashion
                                     synchronized (EventSourceClientImpl.this.jsonObjectMapper) {
-                                        EventSourceClientImpl.this.lastPatch.set(lastPatch);
+                                        EventSourceClientImpl.this.lastPatch.set(lastPatch1);
                                         EventSourceClientImpl.this.currentData.set(data);
 
                                     }
 
                                     // notify observer
-                                    EventSourceClientImpl.this.onPatchCallback.accept(lastPatch);
+                                    EventSourceClientImpl.this.onPatchCallback.accept(lastPatch1);
 
                                 } catch (IOException e) {
                                     EventSourceClientImpl.this.onFailureCallback.accept(e);
@@ -210,7 +203,9 @@ public class EventSourceClientImpl implements EventSourceClient {
                 this.close();
                 System.exit(1);
             }
-        };
+        });
+
+
     }
 
 
