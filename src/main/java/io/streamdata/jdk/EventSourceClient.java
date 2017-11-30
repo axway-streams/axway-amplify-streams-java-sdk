@@ -10,9 +10,8 @@ import java.util.function.Consumer;
 /**
  * This class allows to call the proxy and get the result of polling.
  */
-public interface EventSourceClient {
+public interface EventSourceClient extends ApiStreamer<EventSourceClient> {
 
-    String POLLER_URL = "https://streamdata.motwin.net/";
 
     /**
      * Create an event source for a apiUrl
@@ -26,14 +25,6 @@ public interface EventSourceClient {
         return new EventSourceClientImpl(apiUrl, appKey);
     }
 
-    /**
-     * Add a header to the polling request (those header will be passed to the request when SD.io will poll the API)
-     *
-     * @param name  name of the header
-     * @param value value of the header
-     * @return this client instance for nice fluent api call
-     */
-    EventSourceClient addHeader(String name, String value);
 
     /**
      * Sets a optionnal callback to be called after the event source has been successfully started.

@@ -14,7 +14,7 @@ public class Main {
 
         EventSourceClient eventSource = EventSourceClient.createEventSource(apiURL, appKey);
         eventSource
-                // .addHeader("Authorization", "Barer%20:%20DKJSDKhsjkjhdkHSDks765765JSDS76KJDSDHSJHi4613_QOgdjhsd098ehb87ZAYkJHCKHXyezjGjFHDFKJFKJDtgkjgsdkghkuUBDSKjhsdjskh")
+                .addHeader("X-MYAPI-HEADER", "Polled_By_SD.io")
                 .onData(data -> System.out.println("INITIAL DATA " + data))
                 .onPatch(patch -> System.out.println("PATCH " + patch + " DATA UPDATED " + eventSource.getCurrentData()))
                 .onOpen(() -> System.out.println("And we are... live!"))

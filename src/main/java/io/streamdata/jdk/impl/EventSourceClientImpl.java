@@ -14,21 +14,19 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class EventSourceClientImpl implements EventSourceClient {
+public class EventSourceClientImpl extends AbstractEventStreamer<EventSourceClient> implements EventSourceClient {
 
     // define a slf4j logger
     private static final Logger LOGGER = LoggerFactory.getLogger(EventSourceClientImpl.class);
 
 
     // The polling URL
-    private StringBuffer url;
     private Runnable onOpenCallback;
     private Consumer<JsonNode> onDataCallback;
     private Consumer<JsonNode> onPatchCallback;
@@ -45,36 +43,9 @@ public class EventSourceClientImpl implements EventSourceClient {
     private final Client webClient = ClientBuilder.newBuilder().register(SseFeature.class).build();
     private EventSource eventSource;
 
-    /**
-     * Build the url to be called by {@link #open()}
-     *
-     * @param apiUrl the api URL
-     * @param appKey the key
-     * @throws URISyntaxException when the polling URL is not OK
-     */
+
     public EventSourceClientImpl(String apiUrl, String appKey) throws URISyntaxException {
-        Preconditions.checkNotNull(apiUrl, "anApiUrl cannot be null");
-        Preconditions.checkNotNull(appKey, "aToken cannot be null");
-
-        // check the url
-        URI uri = new URI(apiUrl);
-
-        String queryParamSeparator = (uri.getQuery() == null || uri.getQuery().isEmpty()) ? "?" : "&";
-
-        this.url = new StringBuffer(POLLER_URL)
-                .append(apiUrl)
-                .append(queryParamSeparator)
-                .append("X-Sd-Token=")
-                .append(appKey);
-
-    }
-
-
-    @Override
-    public EventSourceClient addHeader(String name, String value) {
-        this.url.append('&')
-                .append("X-Sd-Header=").append(name).append(':').append(value);
-        return this;
+        super(apiUrl, appKey);
     }
 
     @Override
