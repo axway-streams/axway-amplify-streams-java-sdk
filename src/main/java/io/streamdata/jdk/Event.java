@@ -2,6 +2,15 @@ package io.streamdata.jdk;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * This represent an SSE Event processed by stream data. This no generic implmentation of an SSE event.
+ * It Only handle the three event value send by a streamdata proxy :
+ * <ul>
+ * <li>data</li>
+ * <li>patch</li>
+ * <li>error</li>
+ * </ul>
+ */
 public class Event {
 
     private EventType type;
@@ -18,24 +27,36 @@ public class Event {
         this(type, node, null);
     }
 
-    public Event forData(JsonNode jsonNode) {
+    /**
+     * Build a event that contains the snapshot.
+     * @param jsonNode snapshot as a json node
+     * @return an Event object
+     */
+    public static Event forData(JsonNode jsonNode) {
         return new Event(EventType.DATA, jsonNode);
     }
 
-    public Event forPatch(JsonNode jsonNode) {
-        return new Event(EventType.DATA, jsonNode);
+    /**
+     * Build a event that contains a patch.
+     * @param jsonNode patch as a json node
+     * @return an Event object
+     */
+    public static Event forPatch(JsonNode jsonNode) {
+        return new Event(EventType.PATCH, jsonNode);
     }
 
-    public Event forError(String error) {
+    /**
+     * Build a event that contains an error
+     * @param error the json node
+     * @return an Event object
+     */
+    public static Event forError(String error) {
         return new Event(EventType.ERROR, null, error);
     }
 
+
     public JsonNode getNode() {
         return node;
-    }
-
-    public String getError() {
-        return error;
     }
 
     public boolean isError() {
@@ -48,6 +69,10 @@ public class Event {
 
     public boolean isPatch() {
         return type == EventType.PATCH;
+    }
+
+    public String getError() {
+        return error;
     }
 
     private enum EventType {
