@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 /**
  * This class allows to call the proxy and get the result of polling.
  */
-public interface EventSourceClient extends ApiStreamer<EventSourceClient> {
+public interface EventSourceClient {
 
 
     /**
@@ -24,6 +24,16 @@ public interface EventSourceClient extends ApiStreamer<EventSourceClient> {
     static EventSourceClient createEventSource(String apiUrl, String appKey) throws URISyntaxException {
         return new EventSourceClientImpl(apiUrl, appKey);
     }
+
+
+    /**
+     * Add a header to the polling request (those header will be passed to the request when SD.io will poll the API)
+     *
+     * @param name  name of the header
+     * @param value value of the header
+     * @return this client instance for nice fluent api call
+     */
+    EventSourceClient addHeader(String name, String value);
 
 
     /**

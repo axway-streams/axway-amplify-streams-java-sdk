@@ -14,13 +14,16 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class EventSourceClientImpl extends AbstractEventStreamer<EventSourceClient> implements EventSourceClient {
+public class EventSourceClientImpl implements EventSourceClient {
+
+    private String POLLER_URL = "https://streamdata.motwin.net/";
 
     // define a slf4j logger
     private static final Logger LOGGER = LoggerFactory.getLogger(EventSourceClientImpl.class);
@@ -44,8 +47,42 @@ public class EventSourceClientImpl extends AbstractEventStreamer<EventSourceClie
     private EventSource eventSource;
 
 
+    final StringBuffer url;
+
+    /**
+     * Build the url to be called eventually
+     *
+     * @param apiUrl the api URL
+     * @param appKey the key
+     * @throws URISyntaxException when the polling URL is not OK
+     */
     public EventSourceClientImpl(String apiUrl, String appKey) throws URISyntaxException {
-        super(apiUrl, appKey);
+        Preconditions.checkNotNull(apiUrl, "apiUrl cannot be null");
+        Preconditions.checkNotNull(appKey, "appKey cannot be null");
+
+        // check the url
+        URI uri = new URI(apiUrl);
+
+        String queryParamSeparator = (uri.getQuery() == null || uri.getQuery().isEmpty()) ? "?" : "&";
+
+        this.url = new StringBuffer(POLLER_URL)
+                .append(apiUrl)
+                .append(queryParamSeparator)
+                .append("X-Sd-Token=")
+                .append(appKey);
+    }
+
+    /**
+     * Add a header to the polling request
+     *
+     * @param name  name of the header
+     * @param value value of the header
+     * @return the object for fluent calls
+     */
+    public EventSourceClient addHeader(String name, String value) {
+        this.url.append('&')
+                .append("X-Sd-Header=").append(name).append(':').append(value);
+        return this;
     }
 
     @Override
@@ -134,20 +171,20 @@ public class EventSourceClientImpl extends AbstractEventStreamer<EventSourceClie
                             case "patch":
                                 try {
                                     // read the patch
-                                    JsonNode lastPatch1 = jsonObjectMapper.readTree(eventData);
+                                    JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
 
                                     // apply the patch to the last know data value
-                                    JsonNode data = JsonPatch.apply(lastPatch1, currentData.get());
+                                    JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
 
                                     // set it in a thread safe and atomic fashion
                                     synchronized (EventSourceClientImpl.this.jsonObjectMapper) {
-                                        EventSourceClientImpl.this.lastPatch.set(lastPatch1);
+                                        EventSourceClientImpl.this.lastPatch.set(lastPatch);
                                         EventSourceClientImpl.this.currentData.set(data);
 
                                     }
 
                                     // notify observer
-                                    EventSourceClientImpl.this.onPatchCallback.accept(lastPatch1);
+                                    EventSourceClientImpl.this.onPatchCallback.accept(lastPatch);
 
                                 } catch (IOException e) {
                                     EventSourceClientImpl.this.onFailureCallback.accept(e);
