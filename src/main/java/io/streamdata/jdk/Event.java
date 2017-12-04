@@ -3,10 +3,10 @@ package io.streamdata.jdk;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * This represent an SSE Event processed by stream data. This no generic implmentation of an SSE event.
+ * This represent an SSE Event processed by stream snapshot. This no generic implmentation of an SSE event.
  * It Only handle the three event value send by a streamdata proxy :
  * <ul>
- * <li>data</li>
+ * <li>snapshot</li>
  * <li>patch</li>
  * <li>error</li>
  * </ul>
@@ -14,57 +14,67 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class Event {
 
     private EventType type;
-    private JsonNode node;
+    private JsonNode snapshot;
+    private JsonNode patch;
     private String error;
 
-    private Event(EventType type, JsonNode node, String error) {
+    private Event(EventType type, JsonNode snapshot, JsonNode patch, String error) {
         this.type = type;
-        this.node = node;
+        this.snapshot = snapshot;
+        this.patch = patch;
         this.error = error;
     }
 
-    private Event(EventType type, JsonNode node) {
-        this(type, node, null);
+    private Event(EventType type, JsonNode snapshot, JsonNode patch) {
+        this(type, snapshot, patch, null);
     }
 
     /**
      * Build a event that contains the snapshot.
-     * @param jsonNode snapshot as a json node
+     *
+     * @param snapshot snapshot as a json node
      * @return an Event object
      */
-    public static Event forData(JsonNode jsonNode) {
-        return new Event(EventType.DATA, jsonNode);
+    public static Event forSnapshot(JsonNode snapshot) {
+        return new Event(EventType.SNAPSHOT, snapshot, null);
     }
 
     /**
      * Build a event that contains a patch.
-     * @param jsonNode patch as a json node
+     *
+     * @param snapshot  last know snapshot with patch applied
+     * @param patch patch as a json node
      * @return an Event object
      */
-    public static Event forPatch(JsonNode jsonNode) {
-        return new Event(EventType.PATCH, jsonNode);
+    public static Event forPatch(JsonNode snapshot, JsonNode patch) {
+        return new Event(EventType.PATCH, snapshot, patch);
     }
 
     /**
      * Build a event that contains an error
+     *
      * @param error the json node
      * @return an Event object
      */
     public static Event forError(String error) {
-        return new Event(EventType.ERROR, null, error);
+        return new Event(EventType.ERROR, null, null, error);
     }
 
 
-    public JsonNode getNode() {
-        return node;
+    public JsonNode getSnapshot() {
+        return snapshot;
+    }
+
+    public JsonNode getPatch() {
+        return patch;
     }
 
     public boolean isError() {
         return type == EventType.ERROR;
     }
 
-    public boolean isData() {
-        return type == EventType.PATCH;
+    public boolean isSnapshot() {
+        return type == EventType.SNAPSHOT;
     }
 
     public boolean isPatch() {
@@ -76,7 +86,7 @@ public class Event {
     }
 
     private enum EventType {
-        DATA, PATCH, ERROR
+        SNAPSHOT, PATCH, ERROR
     }
 
 }

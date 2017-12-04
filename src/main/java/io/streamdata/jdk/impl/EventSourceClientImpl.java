@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 public class EventSourceClientImpl implements EventSourceClient {
 
-    private String POLLER_URL = "https://streamdata.motwin.net/";
+
 
     // define a slf4j logger
     private static final Logger LOGGER = LoggerFactory.getLogger(EventSourceClientImpl.class);
@@ -41,13 +41,12 @@ public class EventSourceClientImpl implements EventSourceClient {
 
     // local storage of the data
     private AtomicReference<JsonNode> currentData = new AtomicReference<>();
-    private AtomicReference<JsonNode> lastPatch = new AtomicReference<>();
 
     private final Client webClient = ClientBuilder.newBuilder().register(SseFeature.class).build();
     private EventSource eventSource;
 
 
-    final StringBuffer url;
+    private final StringBuffer url;
 
     /**
      * Build the url to be called eventually
@@ -65,7 +64,7 @@ public class EventSourceClientImpl implements EventSourceClient {
 
         String queryParamSeparator = (uri.getQuery() == null || uri.getQuery().isEmpty()) ? "?" : "&";
 
-        this.url = new StringBuffer(POLLER_URL)
+        this.url = new StringBuffer(SD_PROXY_URL)
                 .append(apiUrl)
                 .append(queryParamSeparator)
                 .append("X-Sd-Token=")
@@ -92,8 +91,8 @@ public class EventSourceClientImpl implements EventSourceClient {
     }
 
     @Override
-    public EventSourceClient onData(Consumer<JsonNode> callback) {
-        this.onDataCallback = callback;
+    public EventSourceClient onSnapshot(Consumer<JsonNode> snaphot) {
+        this.onDataCallback = snaphot;
         return this;
     }
 
@@ -128,15 +127,11 @@ public class EventSourceClientImpl implements EventSourceClient {
         return this.currentData.get();
     }
 
-    @Override
-    public JsonNode getLastPatch() {
-        return this.lastPatch.get();
-    }
 
     @Override
     public Future<?> open() {
 
-        Preconditions.checkNotNull(this.onDataCallback, "You must call onData() with a non-null callback before calling open()");
+        Preconditions.checkNotNull(this.onDataCallback, "You must call onSnapshot() with a non-null callback before calling open()");
         Preconditions.checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
         Preconditions.checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
 
@@ -177,11 +172,9 @@ public class EventSourceClientImpl implements EventSourceClient {
                                     JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
 
                                     // set it in a thread safe and atomic fashion
-                                    synchronized (EventSourceClientImpl.this.jsonObjectMapper) {
-                                        EventSourceClientImpl.this.lastPatch.set(lastPatch);
-                                        EventSourceClientImpl.this.currentData.set(data);
 
-                                    }
+                                    EventSourceClientImpl.this.currentData.set(data);
+
 
                                     // notify observer
                                     EventSourceClientImpl.this.onPatchCallback.accept(lastPatch);

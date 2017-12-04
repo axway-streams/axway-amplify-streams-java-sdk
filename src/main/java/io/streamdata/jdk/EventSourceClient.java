@@ -12,6 +12,7 @@ import java.util.function.Consumer;
  */
 public interface EventSourceClient {
 
+    String SD_PROXY_URL = "https://streamdata.motwin.net/";
 
     /**
      * Create an event source for a apiUrl
@@ -46,16 +47,16 @@ public interface EventSourceClient {
 
     /**
      * Sets a callback to be called after streamdata sends after the first time the API is polled.
-     * <b>This method must be called before calling {@link #open()}</b>
+     * <b>This callback must be set before calling {@link #open()}</b>
      *
-     * @param onData the callback (can be a lambda expression)
+     * @param snaphot the callback (can be a lambda expression)
      * @return this client instance for nice fluent api call
      */
-    EventSourceClient onData(Consumer<JsonNode> onData);
+    EventSourceClient onSnapshot(Consumer<JsonNode> snaphot);
 
     /**
      * Sets a callback to be called every time streamdata pushes a patch. The patch is applied behind the scenes and can be accessed in a thread safe fashion using {@link #getCurrentData()}
-     * * <b>This method must be called before calling {@link #open()}</b>
+     * * <b>This callback must be set before calling {@link #open()}</b>
      *
      * @param onOpen the callback
      * @return this client instance for nice fluent api call
@@ -92,14 +93,7 @@ public interface EventSourceClient {
 
 
     /**
-     * Returns the last patch that has been received
-     *
-     * @return the last patch received or null
-     */
-    JsonNode getLastPatch();
-
-    /**
-     * Opens the connections with streamdata proxy that will poll data for you. {@link #onData(Consumer)} and {@link #onPatch(Consumer)} must have called before.
+     * Opens the connections with streamdata proxy that will poll data for you. {@link #onSnapshot(Consumer)} and {@link #onPatch(Consumer)} must have called before.
      *
      * @return a future to get hints on the thread status
      */

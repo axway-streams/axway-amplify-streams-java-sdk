@@ -27,4 +27,8 @@ public interface StreamApiClient {
      */
     Observable<Event> toObservable();
 
+    void open();
+
+    void close();
+
 }
