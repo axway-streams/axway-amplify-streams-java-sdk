@@ -14,14 +14,15 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public class EventSourceClientImpl implements EventSourceClient {
-
 
 
     // define a slf4j logger
@@ -70,16 +71,18 @@ public class EventSourceClientImpl implements EventSourceClient {
                 .append(appKey);
     }
 
-    /**
-     * Add a header to the polling request
-     *
-     * @param name  name of the header
-     * @param value value of the header
-     * @return the object for fluent calls
-     */
     public EventSourceClient addHeader(String name, String value) {
-        this.url.append('&')
-                .append("X-Sd-Header=").append(name).append(':').append(value);
+
+        try {
+            this.url.append('&')
+                    .append("X-Sd-Header=")
+                    .append(URLEncoder.encode(name, "UTF-8"))
+                    .append(':')
+                    .append(URLEncoder.encode(name, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            // when the encoding our self... no need to throw a check exception
+            throw new IllegalArgumentException(e);
+        }
         return this;
     }
 
