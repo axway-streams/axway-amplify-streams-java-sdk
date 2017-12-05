@@ -3,7 +3,6 @@ package io.streamdata.jdk.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.zjsonpatch.JsonPatch;
-import com.google.common.base.Preconditions;
 import io.streamdata.jdk.EventSourceClient;
 import org.glassfish.jersey.media.sse.EventSource;
 import org.glassfish.jersey.media.sse.InboundEvent;
@@ -13,6 +12,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.ClientRequestFilter;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Feature;
+import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -21,6 +24,9 @@ import java.net.URLEncoder;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class EventSourceClientImpl implements EventSourceClient {
 
@@ -42,11 +48,12 @@ public class EventSourceClientImpl implements EventSourceClient {
     // local storage of the data
     private AtomicReference<JsonNode> currentData = new AtomicReference<>();
 
-    private final Client webClient = ClientBuilder.newBuilder().register(SseFeature.class).build();
+    private Client webClient;
     private EventSource eventSource;
 
 
     private final StringBuffer url;
+    private boolean incrementalCache = true;
 
     /**
      * Build the url to be called eventually
@@ -56,8 +63,8 @@ public class EventSourceClientImpl implements EventSourceClient {
      * @throws URISyntaxException when the polling URL is not OK
      */
     public EventSourceClientImpl(String apiUrl, String appKey) throws URISyntaxException {
-        Preconditions.checkNotNull(apiUrl, "apiUrl cannot be null");
-        Preconditions.checkNotNull(appKey, "appKey cannot be null");
+        checkNotNull(apiUrl, "apiUrl cannot be null");
+        checkNotNull(appKey, "appKey cannot be null");
 
         // check the url
         URI uri = new URI(apiUrl);
@@ -78,11 +85,17 @@ public class EventSourceClientImpl implements EventSourceClient {
                     .append("X-Sd-Header=")
                     .append(URLEncoder.encode(name, "UTF-8"))
                     .append(':')
-                    .append(URLEncoder.encode(name, "UTF-8"));
+                    .append(URLEncoder.encode(value, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             // when the encoding our self... no need to throw a check exception
             throw new IllegalArgumentException(e);
         }
+        return this;
+    }
+
+    @Override
+    public EventSourceClient incrementalCache(boolean enableIncrementalCache) {
+        this.incrementalCache = enableIncrementalCache;
         return this;
     }
 
@@ -133,13 +146,27 @@ public class EventSourceClientImpl implements EventSourceClient {
     @Override
     public Future<?> open() {
 
-        Preconditions.checkNotNull(this.onDataCallback, "You must call onSnapshot() with a non-null callback before calling open()");
-        Preconditions.checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
-        Preconditions.checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
+        checkNotNull(this.onDataCallback, "You must call onSnapshot() with a non-null callback before calling open()");
+        checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
+        checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
 
         try {
 
-            this.eventSource = new EventSource(EventSourceClientImpl.this.webClient.target(EventSourceClientImpl.this.url.toString())) {
+            this.webClient = ClientBuilder.newBuilder()
+                    .register(SseFeature.class)
+                    .register((Feature) context -> {
+                        context.register((ClientRequestFilter) requestContext -> {
+                            requestContext.getHeaders().get("Accept").clear();
+                            requestContext.getHeaders().get("Accept").add(this.incrementalCache ? SseFeature.SERVER_SENT_EVENTS : MediaType.APPLICATION_JSON);
+                        });
+                        return true;
+                    })
+                    .build();
+
+            WebTarget target = this.webClient.target(EventSourceClientImpl.this.url.toString());
+
+
+            this.eventSource = new EventSource(target) {
 
                 @Override
                 public void onEvent(InboundEvent inboundEvent) {
@@ -154,13 +181,15 @@ public class EventSourceClientImpl implements EventSourceClient {
                             try {
                                 // read the data
                                 final JsonNode data = jsonObjectMapper.readTree(eventData);
+
                                 // set it in a thread-safe fashion
-                                EventSourceClientImpl.this.currentData.set(data);
+                                currentData.set(data);
+
                                 // notify observer
-                                EventSourceClientImpl.this.onDataCallback.accept(data);
+                                onDataCallback.accept(data);
                             } catch (IOException e) {
                                 // notify consumer
-                                EventSourceClientImpl.this.onFailureCallback.accept(e);
+                                onFailureCallback.accept(e);
                             }
                             break;
 
@@ -174,21 +203,19 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
 
                                 // set it in a thread safe and atomic fashion
-
-                                EventSourceClientImpl.this.currentData.set(data);
-
+                                currentData.set(data);
 
                                 // notify observer
-                                EventSourceClientImpl.this.onPatchCallback.accept(lastPatch);
+                                onPatchCallback.accept(lastPatch);
 
                             } catch (IOException e) {
-                                EventSourceClientImpl.this.onFailureCallback.accept(e);
+                                onFailureCallback.accept(e);
                             }
                             break;
 
                         case "error":
                             LOGGER.debug("Receiving error {} ", eventData);
-                            EventSourceClientImpl.this.onErrorCallback.accept(eventData);
+                            onErrorCallback.accept(eventData);
                             break;
 
                         default:
@@ -203,7 +230,7 @@ public class EventSourceClientImpl implements EventSourceClient {
             if (this.onOpenCallback != null)
                 this.onOpenCallback.run();
         } catch (Exception e) {
-            EventSourceClientImpl.this.onFailureCallback.accept(e);
+            onFailureCallback.accept(e);
             this.close();
             System.exit(1);
         }

@@ -33,6 +33,12 @@ public class StreamApiClientImpl implements StreamApiClient {
     }
 
     @Override
+    public StreamApiClient incrementalCache(boolean enableIncrementalCache) {
+        this.eventSourceClient.incrementalCache(enableIncrementalCache);
+        return this;
+    }
+
+    @Override
     public Flowable<Event> toObservable(final Scheduler scheduler) {
 
         return Flowable.<Event>create(emitter -> {

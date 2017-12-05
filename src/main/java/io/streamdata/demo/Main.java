@@ -24,9 +24,27 @@ public class Main {
 
             EventSourceClient eventSource = EventSourceClient.createEventSource(apiURL, appKey);
             eventSource
-                    .addHeader("X-MYAPI-HEADER", "Polled_By_SD.io")
+                    .addHeader("X-MYAPI-HEADER", "Polled-By-SD.io")
+                    .addHeader("X-MYAPI-HEADER2", "SomeStuffs")
                     .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
                     .onPatch(patch -> logger.info("PATCH {} SNAPSHOT UPDATED {}", patch, eventSource.getCurrentData()))
+                    .onOpen(() -> logger.info("And we are... live!"))
+                    .open();
+
+            Thread.sleep(10000);
+
+            eventSource.close();
+        }
+
+        /*
+         * Using event source client (no patch)
+         * */
+        {
+
+            EventSourceClient eventSource = EventSourceClient.createEventSource(apiURL, appKey);
+            eventSource.incrementalCache(false)
+                    .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
+                    .onPatch(System.out::println) // useless
                     .onOpen(() -> logger.info("And we are... live!"))
                     .open();
 
@@ -40,17 +58,18 @@ public class Main {
          */
         {
             StreamApiClient streamApiClient = StreamApiClient.createEventStream(apiURL, appKey);
-            Disposable disposable = streamApiClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
-                    .toObservable(null)
-                    .subscribe(event -> {
-                        if (event.isSnapshot()) {
-                            logger.info("RX INITIAL SNAPSHOT {}", event.getSnapshot());
-                        } else if (event.isPatch()) {
-                            logger.info("RX PATCH {} SNAPSHOT UPDATED {}", event.getPatch(), event.getSnapshot());
-                        } else if (event.isError()) {
-                            throw new RuntimeException(event.getError());
-                        }
-                    }, err -> logger.error(err.getMessage(), err));
+            Disposable disposable =
+                    streamApiClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
+                            .toObservable(null) // TODO create new method
+                            .subscribe(event -> {
+                                if (event.isSnapshot()) {
+                                    logger.info("RX INITIAL SNAPSHOT {}", event.getSnapshot());
+                                } else if (event.isPatch()) {
+                                    logger.info("RX PATCH {} SNAPSHOT UPDATED {}", event.getPatch(), event.getSnapshot());
+                                } else if (event.isError()) {
+                                    throw new RuntimeException(event.getError());
+                                }
+                            }, err -> logger.error(err.getMessage(), err));
 
 
             Thread.sleep(15000);
