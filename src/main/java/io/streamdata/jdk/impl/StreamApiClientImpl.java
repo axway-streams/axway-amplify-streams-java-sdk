@@ -1,12 +1,12 @@
 package io.streamdata.jdk.impl;
 
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
+import io.reactivex.schedulers.Schedulers;
 import io.streamdata.jdk.Event;
 import io.streamdata.jdk.EventSourceClient;
 import io.streamdata.jdk.StreamApiClient;
-import rx.Emitter;
-import rx.Observable;
-import rx.Scheduler;
-import rx.schedulers.Schedulers;
 
 import java.net.URISyntaxException;
 
@@ -33,20 +33,20 @@ public class StreamApiClientImpl implements StreamApiClient {
     }
 
     @Override
-    public Observable<Event> toObservable(final Scheduler scheduler) {
+    public Flowable<Event> toObservable(final Scheduler scheduler) {
 
-        return Observable.<Event>create(emitter -> {
+        return Flowable.<Event>create(emitter -> {
 
             this.eventSourceClient.onSnapshot(data -> emitter.onNext(Event.forSnapshot(data)));
             this.eventSourceClient.onPatch(patch -> emitter.onNext(Event.forPatch(this.eventSourceClient.getCurrentData(), patch)));
             this.eventSourceClient.onError(error -> emitter.onNext(Event.forError(error)));
             this.eventSourceClient.onException(emitter::onError);
 
-            emitter.setCancellation(this.eventSourceClient::close);
+            emitter.setCancellable(this.eventSourceClient::close);
 
             this.eventSourceClient.open();
 
-        }, Emitter.BackpressureMode.DROP)
+        }, BackpressureStrategy.DROP)
                 .observeOn(scheduler == null ? Schedulers.computation() : scheduler);
 
 

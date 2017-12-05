@@ -1,8 +1,8 @@
 package io.streamdata.jdk;
 
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
 import io.streamdata.jdk.impl.StreamApiClientImpl;
-import rx.Observable;
-import rx.Scheduler;
 
 import java.net.URISyntaxException;
 
@@ -26,7 +26,7 @@ public interface StreamApiClient {
      * @param scheduler the scheduler to use (if none provided computation is used by by default TODO @ link)
      * @return an observable that triggers realtime data
      */
-    Observable<Event> toObservable(Scheduler scheduler);
+    Flowable<Event> toObservable(Scheduler scheduler);
 
 
 

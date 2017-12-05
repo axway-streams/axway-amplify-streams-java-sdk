@@ -1,10 +1,10 @@
 package io.streamdata.demo;
 
+import io.reactivex.disposables.Disposable;
 import io.streamdata.jdk.EventSourceClient;
 import io.streamdata.jdk.StreamApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Subscription;
 
 import java.net.URISyntaxException;
 
@@ -25,9 +25,9 @@ public class Main {
             EventSourceClient eventSource = EventSourceClient.createEventSource(apiURL, appKey);
             eventSource
                     .addHeader("X-MYAPI-HEADER", "Polled_By_SD.io")
-                    .onSnapshot(data -> System.out.println("INITIAL SNAPSHOT " + data))
-                    .onPatch(patch -> System.out.println("PATCH " + patch + " SNAPSHOT UPDATED " + eventSource.getCurrentData()))
-                    .onOpen(() -> System.out.println("And we are... live!"))
+                    .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
+                    .onPatch(patch -> logger.info("PATCH {} SNAPSHOT UPDATED {}", patch, eventSource.getCurrentData()))
+                    .onOpen(() -> logger.info("And we are... live!"))
                     .open();
 
             Thread.sleep(10000);
@@ -40,10 +40,9 @@ public class Main {
          */
         {
             StreamApiClient streamApiClient = StreamApiClient.createEventStream(apiURL, appKey);
-            Subscription subscribe = streamApiClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
+            Disposable disposable = streamApiClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
                     .toObservable(null)
                     .subscribe(event -> {
-
                         if (event.isSnapshot()) {
                             logger.info("RX INITIAL SNAPSHOT {}", event.getSnapshot());
                         } else if (event.isPatch()) {
@@ -56,7 +55,7 @@ public class Main {
 
             Thread.sleep(15000);
 
-            subscribe.unsubscribe();
+            disposable.dispose();
 
         }
 
