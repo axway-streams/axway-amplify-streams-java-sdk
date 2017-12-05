@@ -2,6 +2,9 @@ package io.streamdata.demo;
 
 import io.streamdata.jdk.EventSourceClient;
 import io.streamdata.jdk.StreamApiClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Subscription;
 
 import java.net.URISyntaxException;
 
@@ -11,6 +14,8 @@ public class Main {
 
         final String appKey = "ODZjZDQ5MDYtYzZkYS00NTQwLWI0ZDctMGZlYzU2N2JlYmY3";
         final String apiURL = "http://stockmarket.streamdata.io/prices";
+
+        Logger logger = LoggerFactory.getLogger(Main.class);
 
         /*
          * Using event source client
@@ -35,25 +40,24 @@ public class Main {
          */
         {
             StreamApiClient streamApiClient = StreamApiClient.createEventStream(apiURL, appKey);
-            streamApiClient.addStreamHeader("X-MYAPI-HEADER", "Polled_By_SD.io")
-                    .toObservable()
-                    .doOnSubscribe(() -> System.out.println("And we are... back!"))
+            Subscription subscribe = streamApiClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
+                    .toObservable(null)
                     .subscribe(event -> {
 
                         if (event.isSnapshot()) {
-                            System.out.println("RX INITIAL SNAPSHOT " + event.getSnapshot());
+                            logger.info("RX INITIAL SNAPSHOT {}", event.getSnapshot());
                         } else if (event.isPatch()) {
-                            System.out.println("RX PATCH " + event.getPatch() + " SNAPSHOT UPDATED " + event.getSnapshot());
+                            logger.info("RX PATCH {} SNAPSHOT UPDATED {}", event.getPatch(), event.getSnapshot());
                         } else if (event.isError()) {
                             throw new RuntimeException(event.getError());
                         }
-                    }, Throwable::printStackTrace);
+                    }, err -> logger.error(err.getMessage(), err));
 
-            streamApiClient.open();
 
-            Thread.sleep(10000);
+            Thread.sleep(15000);
 
-            streamApiClient.close();
+            subscribe.unsubscribe();
+
         }
 
 

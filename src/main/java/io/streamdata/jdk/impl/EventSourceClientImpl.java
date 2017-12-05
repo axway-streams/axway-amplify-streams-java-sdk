@@ -16,7 +16,6 @@ import javax.ws.rs.client.ClientBuilder;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -135,76 +134,78 @@ public class EventSourceClientImpl implements EventSourceClient {
         Preconditions.checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
         Preconditions.checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
 
+        try {
 
-        return Executors.newSingleThreadExecutor().submit(() -> {
-            try {
+            this.eventSource = new EventSource(EventSourceClientImpl.this.webClient.target(EventSourceClientImpl.this.url.toString())) {
 
-                this.eventSource = new EventSource(EventSourceClientImpl.this.webClient.target(EventSourceClientImpl.this.url.toString())) {
+                @Override
+                public void onEvent(InboundEvent inboundEvent) {
 
-                    @Override
-                    public void onEvent(InboundEvent inboundEvent) {
+                    // get data from the source
+                    String eventName = inboundEvent.getName();
+                    String eventData = new String(inboundEvent.getRawData());
 
-                        // get data from the source
-                        String eventName = inboundEvent.getName();
-                        String eventData = new String(inboundEvent.getRawData());
+                    switch (eventName) {
+                        case "data":
+                            LOGGER.debug("Receiving data {} ", eventData);
+                            try {
+                                // read the data
+                                final JsonNode data = jsonObjectMapper.readTree(eventData);
+                                // set it in a thread-safe fashion
+                                EventSourceClientImpl.this.currentData.set(data);
+                                // notify observer
+                                EventSourceClientImpl.this.onDataCallback.accept(data);
+                            } catch (IOException e) {
+                                // notify consumer
+                                EventSourceClientImpl.this.onFailureCallback.accept(e);
+                            }
+                            break;
 
-                        switch (eventName) {
-                            case "data":
-                                try {
-                                    // read the data
-                                    final JsonNode data = jsonObjectMapper.readTree(eventData);
-                                    // set it in a thread-safe fashion
-                                    EventSourceClientImpl.this.currentData.set(data);
-                                    // notify observer
-                                    EventSourceClientImpl.this.onDataCallback.accept(data);
-                                } catch (IOException e) {
-                                    // notify consumer
-                                    EventSourceClientImpl.this.onFailureCallback.accept(e);
-                                }
-                                break;
+                        case "patch":
+                            LOGGER.debug("Receiving patch {} ", eventData);
+                            try {
+                                // read the patch
+                                JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
 
-                            case "patch":
-                                try {
-                                    // read the patch
-                                    JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
+                                // apply the patch to the last know data value
+                                JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
 
-                                    // apply the patch to the last know data value
-                                    JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
+                                // set it in a thread safe and atomic fashion
 
-                                    // set it in a thread safe and atomic fashion
-
-                                    EventSourceClientImpl.this.currentData.set(data);
+                                EventSourceClientImpl.this.currentData.set(data);
 
 
-                                    // notify observer
-                                    EventSourceClientImpl.this.onPatchCallback.accept(lastPatch);
+                                // notify observer
+                                EventSourceClientImpl.this.onPatchCallback.accept(lastPatch);
 
-                                } catch (IOException e) {
-                                    EventSourceClientImpl.this.onFailureCallback.accept(e);
-                                }
-                                break;
+                            } catch (IOException e) {
+                                EventSourceClientImpl.this.onFailureCallback.accept(e);
+                            }
+                            break;
 
-                            case "error":
-                                EventSourceClientImpl.this.onErrorCallback.accept(eventData);
-                                break;
+                        case "error":
+                            LOGGER.debug("Receiving error {} ", eventData);
+                            EventSourceClientImpl.this.onErrorCallback.accept(eventData);
+                            break;
 
-                            default:
-                                LOGGER.warn("Unhandled event received with name '{}' and data : {}", eventName, eventData);
-
-                        }
+                        default:
+                            LOGGER.warn("Unhandled event received with name '{}' and data : {}", eventName, eventData);
 
                     }
 
-                };
-                // it is open... we are excepting thing to happen from now
-                if (this.onOpenCallback != null)
-                    this.onOpenCallback.run();
-            } catch (Exception e) {
-                EventSourceClientImpl.this.onFailureCallback.accept(e);
-                this.close();
-                System.exit(1);
-            }
-        });
+                }
+
+            };
+            // it is open... we are excepting thing to happen from now
+            if (this.onOpenCallback != null)
+                this.onOpenCallback.run();
+        } catch (Exception e) {
+            EventSourceClientImpl.this.onFailureCallback.accept(e);
+            this.close();
+            System.exit(1);
+        }
+
+        return null;
 
 
     }

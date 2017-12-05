@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true">
+    <appender name="SYNC_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>utf-8</charset>
+            <Pattern>%d %highlight(%-5level) %-30([%thread]) %-70c - %green(%m) %nopex %red(%rEx) %n</Pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="SYNC_CONSOLE"/>
+    </appender>
+
+    <appender name="SYNC_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/proxy.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/proxy.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <maxHistory>31</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <charset>utf-8</charset>
+            <Pattern>%d %-5level %-30([%thread]) %-70c - %m %nopex %rEx %n</Pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="SYNC_FILE"/>
+    </appender>
+
+    <logger name="io.streamdata" level="DEBUG"/>
+
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

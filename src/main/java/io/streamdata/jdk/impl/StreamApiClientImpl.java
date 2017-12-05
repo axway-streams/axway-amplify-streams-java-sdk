@@ -3,9 +3,10 @@ package io.streamdata.jdk.impl;
 import io.streamdata.jdk.Event;
 import io.streamdata.jdk.EventSourceClient;
 import io.streamdata.jdk.StreamApiClient;
+import rx.Emitter;
 import rx.Observable;
+import rx.Scheduler;
 import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
 
 import java.net.URISyntaxException;
 
@@ -26,35 +27,30 @@ public class StreamApiClientImpl implements StreamApiClient {
     }
 
     @Override
-    public StreamApiClient addStreamHeader(String name, String value) {
+    public StreamApiClient addHeader(String name, String value) {
         this.eventSourceClient.addHeader(name, value);
         return this;
     }
 
     @Override
-    public Observable<Event> toObservable() {
+    public Observable<Event> toObservable(final Scheduler scheduler) {
 
-        final PublishSubject<Event> subject = PublishSubject.create();
-        subject.observeOn(Schedulers.io());
+        return Observable.<Event>create(emitter -> {
 
-        this.eventSourceClient.onSnapshot(data -> subject.onNext(Event.forSnapshot(data)));
-        this.eventSourceClient.onPatch(patch -> subject.onNext(Event.forPatch(this.eventSourceClient.getCurrentData(), patch)));
-        this.eventSourceClient.onError(error -> subject.onNext(Event.forError(error)));
-        this.eventSourceClient.onException(subject::onError);
+            this.eventSourceClient.onSnapshot(data -> emitter.onNext(Event.forSnapshot(data)));
+            this.eventSourceClient.onPatch(patch -> emitter.onNext(Event.forPatch(this.eventSourceClient.getCurrentData(), patch)));
+            this.eventSourceClient.onError(error -> emitter.onNext(Event.forError(error)));
+            this.eventSourceClient.onException(emitter::onError);
 
-        this.eventSourceClient.open();
+            emitter.setCancellation(this.eventSourceClient::close);
 
-        return subject;
+            this.eventSourceClient.open();
+
+        }, Emitter.BackpressureMode.DROP)
+                .observeOn(scheduler == null ? Schedulers.computation() : scheduler);
+
+
     }
 
-    @Override
-    public void open() {
-        this.eventSourceClient.open();
-    }
-
-    @Override
-    public void close() {
-        this.eventSourceClient.close();
-    }
 
 }

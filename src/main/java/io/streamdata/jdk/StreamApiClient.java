@@ -2,6 +2,7 @@ package io.streamdata.jdk;
 
 import io.streamdata.jdk.impl.StreamApiClientImpl;
 import rx.Observable;
+import rx.Scheduler;
 
 import java.net.URISyntaxException;
 
@@ -18,17 +19,15 @@ public interface StreamApiClient {
      * @param value value of the header
      * @return this client instance for nice fluent api call
      */
-    StreamApiClient addStreamHeader(String name, String value);
+    StreamApiClient addHeader(String name, String value);
 
     /**
      * Expose the arrival of data
-     *
+     * @param scheduler the scheduler to use (if none provided computation is used by by default TODO @ link)
      * @return an observable that triggers realtime data
      */
-    Observable<Event> toObservable();
+    Observable<Event> toObservable(Scheduler scheduler);
 
-    void open();
 
-    void close();
 
 }
