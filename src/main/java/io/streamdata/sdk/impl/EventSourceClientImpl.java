@@ -1,9 +1,9 @@
-package io.streamdata.jdk.impl;
+package io.streamdata.sdk.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.zjsonpatch.JsonPatch;
-import io.streamdata.jdk.EventSourceClient;
+import io.streamdata.sdk.EventSourceClient;
 import org.glassfish.jersey.media.sse.EventSource;
 import org.glassfish.jersey.media.sse.InboundEvent;
 import org.glassfish.jersey.media.sse.SseFeature;
@@ -46,9 +46,8 @@ public class EventSourceClientImpl implements EventSourceClient {
     private final ObjectMapper jsonObjectMapper = new ObjectMapper();
 
     // local storage of the data
-    private AtomicReference<JsonNode> currentData = new AtomicReference<>();
+    private AtomicReference<JsonNode> currentSnapshot = new AtomicReference<>();
 
-    private Client webClient;
     private EventSource eventSource;
 
 
@@ -138,8 +137,8 @@ public class EventSourceClientImpl implements EventSourceClient {
     }
 
     @Override
-    public JsonNode getCurrentData() {
-        return this.currentData.get();
+    public JsonNode getCurrentSnapshot() {
+        return this.currentSnapshot.get();
     }
 
 
@@ -152,7 +151,7 @@ public class EventSourceClientImpl implements EventSourceClient {
 
         try {
 
-            this.webClient = ClientBuilder.newBuilder()
+            Client webClient = ClientBuilder.newBuilder()
                     .register(SseFeature.class)
                     .register((Feature) context -> {
                         context.register((ClientRequestFilter) requestContext -> {
@@ -163,7 +162,7 @@ public class EventSourceClientImpl implements EventSourceClient {
                     })
                     .build();
 
-            WebTarget target = this.webClient.target(EventSourceClientImpl.this.url.toString());
+            WebTarget target = webClient.target(EventSourceClientImpl.this.url.toString());
 
 
             this.eventSource = new EventSource(target) {
@@ -183,7 +182,7 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 final JsonNode data = jsonObjectMapper.readTree(eventData);
 
                                 // set it in a thread-safe fashion
-                                currentData.set(data);
+                                currentSnapshot.set(data);
 
                                 // notify observer
                                 onDataCallback.accept(data);
@@ -200,10 +199,10 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
 
                                 // apply the patch to the last know data value
-                                JsonNode data = JsonPatch.apply(lastPatch, currentData.get());
+                                JsonNode data = JsonPatch.apply(lastPatch, currentSnapshot.get());
 
                                 // set it in a thread safe and atomic fashion
-                                currentData.set(data);
+                                currentSnapshot.set(data);
 
                                 // notify observer
                                 onPatchCallback.accept(lastPatch);

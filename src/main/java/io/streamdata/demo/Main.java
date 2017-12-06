@@ -1,8 +1,9 @@
 package io.streamdata.demo;
 
 import io.reactivex.disposables.Disposable;
-import io.streamdata.jdk.EventSourceClient;
-import io.streamdata.jdk.StreamApiClient;
+import io.streamdata.sdk.EventSourceClient;
+import io.streamdata.sdk.RxJavaEventSourceClient;
+import io.streamdata.sdk.StreamdataClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +23,12 @@ public class Main {
          */
         {
 
-            EventSourceClient eventSource = EventSourceClient.createEventSource(apiURL, appKey);
+            EventSourceClient eventSource = StreamdataClient.createClient(apiURL, appKey);
             eventSource
                     .addHeader("X-MYAPI-HEADER", "Polled-By-SD.io")
                     .addHeader("X-MYAPI-HEADER2", "SomeStuffs")
                     .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
-                    .onPatch(patch -> logger.info("PATCH {} SNAPSHOT UPDATED {}", patch, eventSource.getCurrentData()))
+                    .onPatch(patch -> logger.info("PATCH {} SNAPSHOT UPDATED {}", patch, eventSource.getCurrentSnapshot()))
                     .onOpen(() -> logger.info("And we are... live!"))
                     .open();
 
@@ -41,7 +42,7 @@ public class Main {
          * */
         {
 
-            EventSourceClient eventSource = EventSourceClient.createEventSource(apiURL, appKey);
+            EventSourceClient eventSource = StreamdataClient.createClient(apiURL, appKey);
             eventSource.incrementalCache(false)
                     .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
                     .onPatch(System.out::println) // useless
@@ -54,13 +55,14 @@ public class Main {
         }
 
         /*
-         * Using StreamApiClient
+         * Using RxJavaEventSourceClient
          */
         {
-            StreamApiClient streamApiClient = StreamApiClient.createEventStream(apiURL, appKey);
+            RxJavaEventSourceClient rxJavaEventSourceClient = StreamdataClient.createRxJavaClient(apiURL, appKey);
             Disposable disposable =
-                    streamApiClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
-                            .toObservable(null) // TODO create new method
+                    rxJavaEventSourceClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
+                            .incrementalCache(true) // same behavior as default
+                            .toFlowable()
                             .subscribe(event -> {
                                 if (event.isSnapshot()) {
                                     logger.info("RX INITIAL SNAPSHOT {}", event.getSnapshot());

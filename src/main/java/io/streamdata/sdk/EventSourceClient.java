@@ -1,9 +1,7 @@
-package io.streamdata.jdk;
+package io.streamdata.sdk;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.streamdata.jdk.impl.EventSourceClientImpl;
 
-import java.net.URISyntaxException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
@@ -14,17 +12,6 @@ public interface EventSourceClient {
 
     String SD_PROXY_URL = "https://streamdata.motwin.net/";
 
-    /**
-     * Create an event source for a apiUrl
-     *
-     * @param apiUrl the url to be polled
-     * @param appKey the app key that will be passed to the proxy
-     * @return a client to be
-     * @throws URISyntaxException if the URL to poll is not a valid URL
-     */
-    static EventSourceClient createEventSource(String apiUrl, String appKey) throws URISyntaxException {
-        return new EventSourceClientImpl(apiUrl, appKey);
-    }
 
 
     /**
@@ -39,7 +26,7 @@ public interface EventSourceClient {
 
     /**
      * <p>Allow to enable or disable incremental cache. <b>By default incremental cache is enabled</b> thus the following happens : a Snapshot is sent back to the user followed by successive patches of this snapshot.</p>
-     * <p>If set to false a snapshot will be sent every time, no patch is sent. This means that {@link Event#getPatch()} will return null <b>Use this only for low frequency polling</b></p>
+     * <p>If set to false a snapshot will be sent every time, no patch is sent. This means that {@link RxJavaEventSourceClient.Event#getPatch()} will return null <b>Use this only for low frequency polling</b></p>
      * <p>Behind the scene it adds the header <code>text/event-stream</code> for patches or <code>application/json</code> for non-incremental cache</p>
      *
      * @param enableIncrementalCache a boolean to allow incremental cache (default : true)
@@ -64,7 +51,7 @@ public interface EventSourceClient {
     EventSourceClient onSnapshot(Consumer<JsonNode> snaphot);
 
     /**
-     * Sets a callback to be called every time streamdata pushes a patch. The patch is applied behind the scenes and can be accessed in a thread safe fashion using {@link #getCurrentData()}
+     * Sets a callback to be called every time streamdata pushes a patch. The patch is applied behind the scenes and can be accessed in a thread safe fashion using {@link #getCurrentSnapshot()}
      * * <b>This callback must be set before calling {@link #open()}</b>
      *
      * @param onOpen the callback
@@ -94,11 +81,11 @@ public interface EventSourceClient {
     EventSourceClient onException(Consumer<Throwable> callback);
 
     /**
-     * Get the data (initial or after a patch is received and applied)
+     * Get the snapshot (initial or after a patch is received and applied)
      *
-     * @return the most fresh data available
+     * @return the most fresh snapshot available
      */
-    JsonNode getCurrentData();
+    JsonNode getCurrentSnapshot();
 
 
     /**
