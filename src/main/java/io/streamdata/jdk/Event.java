@@ -3,8 +3,8 @@ package io.streamdata.jdk;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * This represent an SSE Event processed by stream snapshot. This no generic implmentation of an SSE event.
- * It Only handle the three event value send by a streamdata proxy :
+ * This represent an SSE Event processed by stream snapshot. This no generic implementation of an SSE event, for instance it does not contains the id field.
+ * It Only handle the three event values sent by a streamdata.io proxy :
  * <ul>
  * <li>snapshot</li>
  * <li>patch</li>
@@ -61,10 +61,28 @@ public class Event {
     }
 
 
+    /**
+     * Gets the snapshot, this method never return a null object. It is either
+     * <ul>
+     * <li>The initial snapshot {@link #isSnapshot()} returns <code>true</code> is that case</li>
+     * <li>The snapshot with the patch applied ({@link #isPatch()} returns <code>true</code> is that case)</li>
+     * </ul>
+     *
+     * @return the snapshot as a JsonNode
+     */
     public JsonNode getSnapshot() {
         return snapshot;
     }
 
+    /**
+     * Gets the patch if any. There are two cases where <b>the patch can be null</b>
+     * <ul>
+     * <li>{@link #isSnapshot()} return true</li>
+     * <li>{@link EventSourceClient#incrementalCache(boolean)} or {@link StreamApiClient#incrementalCache(boolean)} has been called with null</li>
+     * </ul>
+     *
+     * @return the as a JsonNode
+     */
     public JsonNode getPatch() {
         return patch;
     }
