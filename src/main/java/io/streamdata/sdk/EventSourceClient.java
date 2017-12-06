@@ -2,7 +2,6 @@ package io.streamdata.sdk;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 /**
@@ -93,7 +92,7 @@ public interface EventSourceClient {
      *
      * @return a future to get hints on the thread status
      */
-    Future<?> open();
+    EventSourceClient open();
 
     /**
      * Closes the event source gracefully

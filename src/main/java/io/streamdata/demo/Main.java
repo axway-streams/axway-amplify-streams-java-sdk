@@ -42,8 +42,8 @@ public class Main {
          * */
         {
 
-            EventSourceClient eventSource = StreamdataClient.createClient(apiURL, appKey);
-            eventSource.incrementalCache(false)
+            EventSourceClient eventSource = StreamdataClient.createClient(apiURL, appKey)
+                    .incrementalCache(false)
                     .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
                     .onPatch(System.out::println) // useless
                     .onOpen(() -> logger.info("And we are... live!"))

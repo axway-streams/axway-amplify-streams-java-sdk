@@ -21,7 +21,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -143,7 +142,7 @@ public class EventSourceClientImpl implements EventSourceClient {
 
 
     @Override
-    public Future<?> open() {
+    public EventSourceClient open() {
 
         checkNotNull(this.onDataCallback, "You must call onSnapshot() with a non-null callback before calling open()");
         checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
@@ -234,7 +233,7 @@ public class EventSourceClientImpl implements EventSourceClient {
             System.exit(1);
         }
 
-        return null;
+        return this;
 
 
     }
