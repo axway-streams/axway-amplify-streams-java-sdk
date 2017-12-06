@@ -40,6 +40,14 @@ public interface EventSourceClient {
     EventSourceClient onOpen(Runnable onOpen);
 
     /**
+     * Sets a optionnal callback to be called after the event source has been closed
+     *
+     * @param onClose the callback
+     * @return this client instance for nice fluent api call
+     */
+    EventSourceClient onClose(Runnable onClose);
+
+    /**
      * Sets a callback to be called after streamdata sends after the first time the API is polled.
      * <b>This callback must be set before calling {@link #open()}</b>
      *

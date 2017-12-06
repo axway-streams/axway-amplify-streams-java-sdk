@@ -30,6 +30,7 @@ public class Main {
                     .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
                     .onPatch(patch -> logger.info("PATCH {} SNAPSHOT UPDATED {}", patch, eventSource.getCurrentSnapshot()))
                     .onOpen(() -> logger.info("And we are... live!"))
+                    .onClose(() -> logger.info("Bye now!"))
                     .open();
 
             Thread.sleep(10000);

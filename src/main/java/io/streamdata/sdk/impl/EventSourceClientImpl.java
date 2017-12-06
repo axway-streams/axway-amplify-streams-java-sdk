@@ -36,6 +36,7 @@ public class EventSourceClientImpl implements EventSourceClient {
 
     // The polling URL
     private Runnable onOpenCallback;
+    private Runnable onCloseCallback;
     private Consumer<JsonNode> onDataCallback;
     private Consumer<JsonNode> onPatchCallback;
     private Consumer<String> onErrorCallback = err -> LOGGER.error("A streamdata error has been sent from SSE : {}", err);
@@ -104,6 +105,12 @@ public class EventSourceClientImpl implements EventSourceClient {
     }
 
     @Override
+    public EventSourceClient onClose(Runnable callback) {
+        this.onCloseCallback = callback;
+        return this;
+    }
+
+    @Override
     public EventSourceClient onSnapshot(Consumer<JsonNode> snaphot) {
         this.onDataCallback = snaphot;
         return this;
@@ -131,6 +138,9 @@ public class EventSourceClientImpl implements EventSourceClient {
     public void close() {
         if (this.eventSource != null) {
             this.eventSource.close();
+            if (this.onCloseCallback != null) {
+                this.onCloseCallback.run();
+            }
             this.eventSource = null;
         }
     }
