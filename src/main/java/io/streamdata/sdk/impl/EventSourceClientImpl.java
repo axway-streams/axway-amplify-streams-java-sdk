@@ -145,7 +145,9 @@ public class EventSourceClientImpl implements EventSourceClient {
     public EventSourceClient open() {
 
         checkNotNull(this.onDataCallback, "You must call onSnapshot() with a non-null callback before calling open()");
-        checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
+        if (incrementalCache) {
+            checkNotNull(this.onPatchCallback, "You must call onPatch() with a non-null callback before calling open()");
+        }
         checkArgument(this.eventSource == null, "You cannot call open() on an already opened event source");
 
         try {

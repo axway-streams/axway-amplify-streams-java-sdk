@@ -12,7 +12,6 @@ public interface EventSourceClient {
     String SD_PROXY_URL = "https://streamdata.motwin.net/";
 
 
-
     /**
      * Add a header to the polling request (those header will be passed to the request when SD.io will poll the API)
      *
@@ -88,7 +87,8 @@ public interface EventSourceClient {
 
 
     /**
-     * Opens the connections with streamdata proxy that will poll data for you. {@link #onSnapshot(Consumer)} and {@link #onPatch(Consumer)} must have called before.
+     * Opens the connections with streamdata proxy that will poll data for you.
+     * {@link #onSnapshot(Consumer)} must have called before and {@link #onPatch(Consumer)} is incremental cache is on (default is yes unless you call {@link #incrementalCache(boolean)} with false.
      *
      * @return a future to get hints on the thread status
      */
