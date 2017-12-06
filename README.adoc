@@ -1,0 +1,117 @@
+
+== Streamdata.io Java SDK
+
+
+=== What does the API do ?
+
+It remove the plumbing between you and streamdata.io once you have an API ready to use, you can use the code above.
+
+It connects to the server with some your API URL and your credentials (API key) and you get notified using either
+
+* Some callback you provide
+* Trough an RxJava2 `Flowable`
+
+You can choose to receive snapshots only or one snapshot and then patches you don't even know SSE is used, you just use your data.
+
+=== Prerequisite
+
+* You have to create an account on streamdata.io and create an app using your API or one of demo sample API provided by streamdata.io
+* You must use Java8+ to use this API as to takes advantage
+of lambda expression and some specific features of java8.
+
+=== How to integrate the API into your project
+
+*Maven*
+
+[xml]
+----
+<dependency>
+    <groupId>io.streamdata</groupId>
+    <artifactId>java-sdk</artifactId>
+    <version>1.0</version>
+</dependency>
+----
+
+*Gradle*
+
+----
+dependencies {
+    compile("io.streamdata:java-sdk:1.0")
+}
+----
+
+Notable transitive dependencies :
+
+* Glassfish Jersey as EventSource client
+* Slf4j with a default configuration
+* RxJava 2
+
+=== Callback based API
+
+This API is based on callbacks and is very similar to our Node.js API.
+
+[java]
+----
+
+String apiURL = "http://api.mycompany.com/prices";
+String appKey = "YOUR OWN APP KEY";                                             # <1>
+
+EventSourceClient client = StreamdataClient.createClient(apiURL, appKey);
+client.addHeader("X-MYAPI-POLLER", "Polled By SD.io")                           # <2>
+        .incrementalCache(true)                                                 # <3>
+        .onSnapshot(data -> this::processData)                                  # <4>
+        .onPatch(patch -> this.processPatch(patch, client.getCurrentSnaphot())) # <5>
+        .onOpen(() -> logger.info("And we are... live!"))                       # <6>
+        .onClose(() -> logger.info("And we are... live!"))                      # <7>
+        .onError(err -> logger.error("An error occured {}", err))               # <8>
+        .onException(ex -> logger.error("Unexpected error", ex))                # <9>
+        .open();                                                                # <10>
+----
+
+<1> This the key you when you created your app in the web portal.
+<2> Headers to be added when polling your API (Typically some auth header) [_Optional_ ]
+<3> This allows you let streamdata send snapshots only (set `false` to do so) or snapshot then patch (default behaviour if you don't call this method) [_Optional_ ]
+<4> A callback that will consume the snaphost
+<5> A callback that will consume the patch (you can access the snaphost anyways) [_Optional_ ]
+<6> Call when successfully open the connection [_Optional_ ]
+<7> Call the connection is actually closed [_Optional_ ]
+<6> Call when the stream return an error, by default the error is logged usually it is recommended to close the connection : ```client.close()``` [_Optional_ ]
+<7> Call when an error occurs, mainly when opening the event source, by default the error is recommended to close the connection : ```client.close()``` [_Optional_ ]
+<10> Open the connection with the server
+
+
+=== RxJava based API
+
+This API relies on the previous one but expose a rx's Flowable interface to handle data coming from the server.
+Data is wrapped in a simple Event class allowing you to know is the data is an error a patch or a snapshot.
+
+
+[java]
+----
+
+String apiURL = "http://api.mycompany.com/prices";
+String appKey = "YOUR OWN APP KEY";                                             # <1>
+
+
+StreamdataClient.createRxJavaClient(apiURL, appKey)
+            .addHeader("X-MYAPI-POLLER", "Polled By SD.io")                     # <2>
+            .incrementalCache(true)                                             # <3>
+            .toFlowable()                                                       # <4>
+            // here you can add operator to manipulate the flow
+            .subscribe(event -> {                                               # <5>
+                if (event.isSnapshot()) {
+                    this.processData(event.getSnapshot())
+                } else if (event.isPatch()) {
+                    this.processData(event.getPatch(), event.getSnapshot())
+                } else if (event.isError()) {
+                    throw new RuntimeException(event.getError());               # <6>
+                }
+            }, err -> logger.error(err.getMessage(), err));
+
+----
+<1> Same as above
+<2> Same as above
+<3> Same as above
+<4> Once configured you can start manipulating you data
+<5> An example without using any rx operators before show you available methods on event
+<6> Shis will stop the flowable and disconnect the event source
