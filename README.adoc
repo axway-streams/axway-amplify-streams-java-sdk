@@ -104,7 +104,7 @@ StreamdataClient.createRxJavaClient(apiURL, appKey)
                 } else if (event.isPatch()) {
                     this.processData(event.getPatch(), event.getSnapshot())
                 } else if (event.isError()) {
-                    throw new RuntimeException(event.getError());               # <6>
+                    throw new RuntimeException(event.getError().toString());    # <6>
                 }
             }, err -> logger.error(err.getMessage(), err));
 
@@ -115,3 +115,20 @@ StreamdataClient.createRxJavaClient(apiURL, appKey)
 <4> Once configured you can start manipulating you data
 <5> An example without using any rx operators before show you available methods on event
 <6> Shis will stop the flowable and disconnect the event source
+
+== Errors
+
+Errors not a simple string. It is JSON !
+
+Above, an example of an error so you can get more detailed informations
+
+[JSON]
+```
+{
+    "status":2005,
+    "cause":"An error occurred while streaming http://stockmarket.streamdata.io/priceshttp://stockmarket.streamdata.io/prices. : HTTP/1.1 404 ",
+    "message":"HTTP error. The Http response cannot be processed.",
+    "timestamp":1512566770744,
+    "sessionId":"62fd67bc-d090-4333-a783-d94b366f55f4"
+}
+```
