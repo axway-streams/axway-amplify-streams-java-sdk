@@ -69,7 +69,7 @@ public class Main {
                                 } else if (event.isPatch()) {
                                     logger.info("RX PATCH {} SNAPSHOT UPDATED {}", event.getPatch(), event.getSnapshot());
                                 } else if (event.isError()) {
-                                    throw new RuntimeException(event.getError());
+                                    throw new RuntimeException(event.getError().toString());
                                 }
                             }, err -> logger.error(err.getMessage(), err));
 

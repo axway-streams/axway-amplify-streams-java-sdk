@@ -39,7 +39,7 @@ public class EventSourceClientImpl implements EventSourceClient {
     private Runnable onCloseCallback;
     private Consumer<JsonNode> onDataCallback;
     private Consumer<JsonNode> onPatchCallback;
-    private Consumer<String> onErrorCallback = err -> LOGGER.error("A streamdata error has been sent from SSE : {}", err);
+    private Consumer<JsonNode> onErrorCallback = err -> LOGGER.error("A streamdata error has been sent from SSE : {}", err);
     private Consumer<Throwable> onFailureCallback = t -> LOGGER.error("An error occured while processing event", t);
 
     // jackson objectMapper to parse Json content
@@ -123,7 +123,7 @@ public class EventSourceClientImpl implements EventSourceClient {
     }
 
     @Override
-    public EventSourceClient onError(Consumer<String> callback) {
+    public EventSourceClient onError(Consumer<JsonNode> callback) {
         this.onErrorCallback = callback;
         return this;
     }
@@ -224,8 +224,16 @@ public class EventSourceClientImpl implements EventSourceClient {
                             break;
 
                         case "error":
-                            LOGGER.debug("Receiving error {} ", eventData);
-                            onErrorCallback.accept(eventData);
+                            try {
+                                LOGGER.debug("Receiving error {} ", eventData);
+
+                                // read the error
+                                JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
+
+                                onErrorCallback.accept(lastPatch);
+                            } catch (IOException e) {
+                                onFailureCallback.accept(e);
+                            }
                             break;
 
                         default:

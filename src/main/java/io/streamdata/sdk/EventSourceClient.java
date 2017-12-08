@@ -71,7 +71,7 @@ public interface EventSourceClient {
      * @param callback the callback
      * @return this client instance for nice fluent api call
      */
-    EventSourceClient onError(Consumer<String> callback);
+    EventSourceClient onError(Consumer<JsonNode> callback);
 
     /**
      * Sets a callback that is called when a exception is raised :

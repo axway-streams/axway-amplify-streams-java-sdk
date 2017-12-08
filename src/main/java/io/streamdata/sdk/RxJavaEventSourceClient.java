@@ -59,9 +59,9 @@ public interface RxJavaEventSourceClient {
         private EventType type;
         private JsonNode snapshot;
         private JsonNode patch;
-        private String error;
+        private JsonNode error;
 
-        private Event(EventType type, JsonNode snapshot, JsonNode patch, String error) {
+        private Event(EventType type, JsonNode snapshot, JsonNode patch, JsonNode error) {
             this.type = type;
             this.snapshot = snapshot;
             this.patch = patch;
@@ -99,7 +99,7 @@ public interface RxJavaEventSourceClient {
          * @param error the json node
          * @return an Event object
          */
-        public static Event forError(String error) {
+        public static Event forError(JsonNode error) {
             return new Event(EventType.ERROR, null, null, error);
         }
 
@@ -142,7 +142,7 @@ public interface RxJavaEventSourceClient {
             return type == EventType.PATCH;
         }
 
-        public String getError() {
+        public JsonNode getError() {
             return error;
         }
 
