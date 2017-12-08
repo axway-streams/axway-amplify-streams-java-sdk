@@ -40,9 +40,9 @@ public interface RxJavaEventSourceClient {
      * <p>If set to false a snapshot will be sent every time, no patch is sent. This means that {@link Event#getPatch()} will return null <b>Use this only for low frequency polling</b></p>
      * <p>Behind the scene it adds the header <code>text/event-stream</code> for patches or <code>application/json</code> for non-incremental cache</p>
      *
-     * @param enableIncrementalCache a boolean to allow incremental cache (default : true)
+     * @param useJsonPatch a boolean to allow incremental cache (default : true)
      */
-    RxJavaEventSourceClient incrementalCache(boolean enableIncrementalCache);
+    RxJavaEventSourceClient useJsonPatch(boolean useJsonPatch);
 
 
     /**
@@ -121,7 +121,7 @@ public interface RxJavaEventSourceClient {
          * Gets the patch if any. There are two cases where <b>the patch can be null</b>
          * <ul>
          * <li>{@link #isSnapshot()} return true</li>
-         * <li>{@link EventSourceClient#incrementalCache(boolean)} or {@link RxJavaEventSourceClient#incrementalCache(boolean)} has been called with null</li>
+         * <li>{@link EventSourceClient#useJsonPatch(boolean)} or {@link RxJavaEventSourceClient#useJsonPatch(boolean)} has been called with null</li>
          * </ul>
          *
          * @return the as a JsonNode

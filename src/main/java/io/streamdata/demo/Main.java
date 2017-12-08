@@ -13,7 +13,7 @@ public class Main {
 
     public static void main(String... args) throws URISyntaxException, InterruptedException {
 
-        final String appKey = "ODZjZDQ5MDYtYzZkYS00NTQwLWI0ZDctMGZlYzU2N2JlYmY3";
+        final String appKey = "[YOUR TOKEN HERE]";
         final String apiURL = "http://stockmarket.streamdata.io/prices";
 
         Logger logger = LoggerFactory.getLogger(Main.class);
@@ -27,8 +27,10 @@ public class Main {
             eventSource
                     .addHeader("X-MYAPI-HEADER", "Polled-By-SD.io")
                     .addHeader("X-MYAPI-HEADER2", "SomeStuffs")
-                    .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
+                    .onSnapshot(data -> logger.info("RECEIVING SNAPSHOT {}", data))
                     .onPatch(patch -> logger.info("PATCH {} SNAPSHOT UPDATED {}", patch, eventSource.getCurrentSnapshot()))
+                    .onError(error -> logger.error("Error occured : {}", error.toString()))
+                    .onException(ex -> logger.error("Error occured on connection", ex))
                     .onOpen(() -> logger.info("And we are... live!"))
                     .onClose(() -> logger.info("Bye now!"))
                     .open();
@@ -44,8 +46,8 @@ public class Main {
         {
 
             EventSourceClient eventSource = StreamdataClient.createClient(apiURL, appKey)
-                    .incrementalCache(false)
-                    .onSnapshot(data -> logger.info("INITIAL SNAPSHOT {}", data))
+                    .useJsonPatch(false)
+                    .onSnapshot(data -> logger.info("RECEIVING SNAPSHOT {}", data))
                     .onOpen(() -> logger.info("And we are... live!"))
                     .open();
 
@@ -61,7 +63,7 @@ public class Main {
             RxJavaEventSourceClient rxJavaEventSourceClient = StreamdataClient.createRxJavaClient(apiURL, appKey);
             Disposable disposable =
                     rxJavaEventSourceClient.addHeader("X-MYAPI-HEADER", "Polled By SD.io")
-                            .incrementalCache(true) // same behavior as default
+                            .useJsonPatch(true) // same behavior as default
                             .toFlowable()
                             .subscribe(event -> {
                                 if (event.isSnapshot()) {

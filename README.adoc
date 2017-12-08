@@ -2,22 +2,37 @@
 == Streamdata.io Java SDK
 
 
-=== What does the API do ?
+=== What does the API do?
 
 It remove the plumbing between you and streamdata.io once you have an API ready to use, you can use the code above.
 
 It connects to the server with some your API URL and your credentials (API key) and you get notified using either
 
 * Some callback you provide
-* Trough an RxJava2 `Flowable`
+* Through an RxJava2 `Flowable`
 
 You can choose to receive snapshots only or one snapshot and then patches you don't even know SSE is used, you just use your data.
 
-=== Prerequisite
+=== Step by step setup to run demo
 
-* You have to create an account on streamdata.io and create an app using your API or one of demo sample API provided by streamdata.io
-* You must use Java8+ to use this API as to takes advantage
-of lambda expression and some specific features of java8.
+* Create an free account on streamdata.io https://portal.streamdata.io/#/register to get an App token.
+* Clone project, edit Main.java and replace [YOUR TOKEN HERE] with your App token.
+* Make sure you have Java 8+ installed
+* Make sure you have maven 3.0+ installed
+* Build project with maven:
+
+    `mvn clean install`
+
+* Run sample from a terminal:
+
+    `java -jar target/streamdataio-sdk-java-1.0.jar`
+
+* You should see data and patches pushed in your application and displayed on your terminal.
+* You can build the jar on you own and use provided classes to use this API
+you can use the provided demo example API which simulates updating stocks prices from a financial market: 'http://stockmarket.streamdata.io/v2/prices'
+
+Feel free to test it with any REST/Json API of your choice.
+
 
 === How to integrate the API into your project
 
@@ -42,9 +57,11 @@ dependencies {
 
 Notable transitive dependencies :
 
-* Glassfish Jersey as EventSource client
+* Glassfish Jersey as EventSource client (https://jersey.java.net/documentation/latest/sse.html)
+* RxJava 2 (https://github.com/ReactiveX/RxJava)
+* Jackson for Json processing  (http://wiki.fasterxml.com/JacksonHome).
+* zjsonpatch (https://github.com/flipkart-incubator/zjsonpatch) as a Java Json-Patch implementation
 * Slf4j with a default configuration
-* RxJava 2
 
 === Callback based API
 
@@ -58,7 +75,7 @@ String appKey = "YOUR OWN APP KEY";                                             
 
 EventSourceClient client = StreamdataClient.createClient(apiURL, appKey);
 client.addHeader("X-MYAPI-POLLER", "Polled By SD.io")                           # <2>
-        .incrementalCache(true)                                                 # <3>
+        .useJsonPatch(true)                                                     # <3>
         .onSnapshot(data -> this::processData)                                  # <4>
         .onPatch(patch -> this.processPatch(patch, client.getCurrentSnaphot())) # <5>
         .onOpen(() -> logger.info("And we are... live!"))                       # <6>
@@ -71,12 +88,12 @@ client.addHeader("X-MYAPI-POLLER", "Polled By SD.io")                           
 <1> This the key you when you created your app in the web portal.
 <2> Headers to be added when polling your API (Typically some auth header) [_Optional_ ]
 <3> This allows you let streamdata send snapshots only (set `false` to do so) or snapshot then patch (default behaviour if you don't call this method) [_Optional_ ]
-<4> A callback that will consume the snaphost
+<4> A callback that will consume the snapshot
 <5> A callback that will consume the patch (you can access the snaphost anyways) [_Optional_ ]
 <6> Call when successfully open the connection [_Optional_ ]
 <7> Call the connection is actually closed [_Optional_ ]
-<6> Call when the stream return an error, by default the error is logged usually it is recommended to close the connection : ```client.close()``` [_Optional_ ]
-<7> Call when an error occurs, mainly when opening the event source, by default the error is recommended to close the connection : ```client.close()``` [_Optional_ ]
+<6> Call when the stream return an error, by default the error is logged usually it is recommended to close the connection: ```client.close()``` [_Optional_ ]
+<7> Call when an error occurs, mainly when opening the event source, by default the error is recommended to close the connection: ```client.close()``` [_Optional_ ]
 <10> Open the connection with the server
 
 
@@ -95,7 +112,7 @@ String appKey = "YOUR OWN APP KEY";                                             
 
 StreamdataClient.createRxJavaClient(apiURL, appKey)
             .addHeader("X-MYAPI-POLLER", "Polled By SD.io")                     # <2>
-            .incrementalCache(true)                                             # <3>
+            .useJsonPatch(true)                                             # <3>
             .toFlowable()                                                       # <4>
             // here you can add operator to manipulate the flow
             .subscribe(event -> {                                               # <5>
@@ -118,9 +135,9 @@ StreamdataClient.createRxJavaClient(apiURL, appKey)
 
 == Errors
 
-Errors not a simple string. It is JSON !
+Errors not a simple string. It is JSON!
 
-Above, an example of an error so you can get more detailed informations
+Above, an example of an error so you can get more detailed informations.
 
 [JSON]
 ```

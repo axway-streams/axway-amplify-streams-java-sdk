@@ -40,7 +40,7 @@ public class EventSourceClientImpl implements EventSourceClient {
     private Consumer<JsonNode> onDataCallback;
     private Consumer<JsonNode> onPatchCallback;
     private Consumer<JsonNode> onErrorCallback = err -> LOGGER.error("A streamdata error has been sent from SSE : {}", err);
-    private Consumer<Throwable> onFailureCallback = t -> LOGGER.error("An error occured while processing event", t);
+    private Consumer<Throwable> onExceptionCallback = t -> LOGGER.error("An error occured while processing event", t);
 
     // jackson objectMapper to parse Json content
     private final ObjectMapper jsonObjectMapper = new ObjectMapper();
@@ -93,7 +93,7 @@ public class EventSourceClientImpl implements EventSourceClient {
     }
 
     @Override
-    public EventSourceClient incrementalCache(boolean enableIncrementalCache) {
+    public EventSourceClient useJsonPatch(boolean enableIncrementalCache) {
         this.incrementalCache = enableIncrementalCache;
         return this;
     }
@@ -130,7 +130,7 @@ public class EventSourceClientImpl implements EventSourceClient {
 
     @Override
     public EventSourceClient onException(Consumer<Throwable> callback) {
-        this.onFailureCallback = callback;
+        this.onExceptionCallback = callback;
         return this;
     }
 
@@ -166,8 +166,9 @@ public class EventSourceClientImpl implements EventSourceClient {
                     .register(SseFeature.class)
                     .register((Feature) context -> {
                         context.register((ClientRequestFilter) requestContext -> {
-                            requestContext.getHeaders().get("Accept").clear();
-                            requestContext.getHeaders().get("Accept").add(this.incrementalCache ? SseFeature.SERVER_SENT_EVENTS : MediaType.APPLICATION_JSON);
+                            if (!this.incrementalCache) {
+                                requestContext.getHeaders().get("Accept").add(MediaType.APPLICATION_JSON);
+                            }
                         });
                         return true;
                     })
@@ -199,7 +200,7 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 onDataCallback.accept(data);
                             } catch (IOException e) {
                                 // notify consumer
-                                onFailureCallback.accept(e);
+                                onExceptionCallback.accept(e);
                             }
                             break;
 
@@ -219,7 +220,7 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 onPatchCallback.accept(lastPatch);
 
                             } catch (IOException e) {
-                                onFailureCallback.accept(e);
+                                onExceptionCallback.accept(e);
                             }
                             break;
 
@@ -228,11 +229,11 @@ public class EventSourceClientImpl implements EventSourceClient {
                                 LOGGER.debug("Receiving error {} ", eventData);
 
                                 // read the error
-                                JsonNode lastPatch = jsonObjectMapper.readTree(eventData);
+                                JsonNode error = jsonObjectMapper.readTree(eventData);
 
-                                onErrorCallback.accept(lastPatch);
+                                onErrorCallback.accept(error);
                             } catch (IOException e) {
-                                onFailureCallback.accept(e);
+                                onExceptionCallback.accept(e);
                             }
                             break;
 
@@ -248,7 +249,7 @@ public class EventSourceClientImpl implements EventSourceClient {
             if (this.onOpenCallback != null)
                 this.onOpenCallback.run();
         } catch (Exception e) {
-            onFailureCallback.accept(e);
+            onExceptionCallback.accept(e);
             this.close();
             System.exit(1);
         }

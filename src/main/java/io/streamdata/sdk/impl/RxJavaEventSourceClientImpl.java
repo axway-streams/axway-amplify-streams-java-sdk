@@ -26,8 +26,8 @@ public class RxJavaEventSourceClientImpl implements RxJavaEventSourceClient {
     }
 
     @Override
-    public RxJavaEventSourceClient incrementalCache(boolean enableIncrementalCache) {
-        this.eventSourceClient.incrementalCache(enableIncrementalCache);
+    public RxJavaEventSourceClient useJsonPatch(boolean enableIncrementalCache) {
+        this.eventSourceClient.useJsonPatch(enableIncrementalCache);
         return this;
     }
 

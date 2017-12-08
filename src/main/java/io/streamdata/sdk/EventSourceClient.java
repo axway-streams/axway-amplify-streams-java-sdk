@@ -27,9 +27,9 @@ public interface EventSourceClient {
      * <p>If set to false a snapshot will be sent every time, no patch is sent. This means that {@link RxJavaEventSourceClient.Event#getPatch()} will return null <b>Use this only for low frequency polling</b></p>
      * <p>Behind the scene it adds the header <code>text/event-stream</code> for patches or <code>application/json</code> for non-incremental cache</p>
      *
-     * @param enableIncrementalCache a boolean to allow incremental cache (default : true)
+     * @param useJsonPatch a boolean to allow incremental cache (default : true)
      */
-    EventSourceClient incrementalCache(boolean enableIncrementalCache);
+    EventSourceClient useJsonPatch(boolean useJsonPatch);
 
     /**
      * Sets a optionnal callback to be called after the event source has been successfully started.
@@ -96,7 +96,7 @@ public interface EventSourceClient {
 
     /**
      * Opens the connections with streamdata proxy that will poll data for you.
-     * {@link #onSnapshot(Consumer)} must have called before and {@link #onPatch(Consumer)} is incremental cache is on (default is yes unless you call {@link #incrementalCache(boolean)} with false.
+     * {@link #onSnapshot(Consumer)} must have called before and {@link #onPatch(Consumer)} is incremental cache is on (default is yes unless you call {@link #useJsonPatch(boolean)} with false.
      *
      * @return a future to get hints on the thread status
      */
