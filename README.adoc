@@ -28,15 +28,17 @@ You can choose to receive snapshots only or one snapshot and then patches you do
     `java -jar target/streamdataio-sdk-java-1.0.jar`
 
 * You should see data and patches pushed in your application and displayed on your terminal.
-* You can build the jar on you own and use provided classes to use this API
-you can use the provided demo example API which simulates updating stocks prices from a financial market: 'http://stockmarket.streamdata.io/v2/prices'
+* You can build the jar on your own and use provided classes to use this API.
+You can use the provided demo which stream an API of factice financial market: 'http://stockmarket.streamdata.io/v2/prices'
 
-Feel free to test it with any REST/Json API of your choice.
+Feel free to test it with any REST/Json API of your choice. You can add authorization headers and query params.
 
 
 === How to integrate the API into your project
 
 *Maven*
+
+_after building this project_
 
 [xml]
 ----
@@ -76,10 +78,10 @@ String appKey = "YOUR OWN APP KEY";                                             
 EventSourceClient client = StreamdataClient.createClient(apiURL, appKey);
 client.addHeader("X-MYAPI-POLLER", "Polled By SD.io")                           # <2>
         .useJsonPatch(true)                                                     # <3>
-        .onSnapshot(data -> this::processData)                                  # <4>
+        .onSnapshot(this::processData)                                          # <4>
         .onPatch(patch -> this.processPatch(patch, client.getCurrentSnaphot())) # <5>
         .onOpen(() -> logger.info("And we are... live!"))                       # <6>
-        .onClose(() -> logger.info("And we are... live!"))                      # <7>
+        .onClose(() -> logger.info("And we are... dead!"))                      # <7>
         .onError(err -> logger.error("An error occured {}", err))               # <8>
         .onException(ex -> logger.error("Unexpected error", ex))                # <9>
         .open();                                                                # <10>
@@ -90,11 +92,11 @@ client.addHeader("X-MYAPI-POLLER", "Polled By SD.io")                           
 <3> This allows you let streamdata send snapshots only (set `false` to do so) or snapshot then patch (default behaviour if you don't call this method) [_Optional_ ]
 <4> A callback that will consume the snapshot
 <5> A callback that will consume the patch (you can access the snaphost anyways) [_Optional_ ]
-<6> Call when successfully open the connection [_Optional_ ]
-<7> Call the connection is actually closed [_Optional_ ]
-<6> Call when the stream return an error, by default the error is logged usually it is recommended to close the connection: ```client.close()``` [_Optional_ ]
-<7> Call when an error occurs, mainly when opening the event source, by default the error is recommended to close the connection: ```client.close()``` [_Optional_ ]
-<10> Open the connection with the server
+<6> Called when successfully open the connection [_Optional_ ]
+<7> Called the connection is actually closed [_Optional_ ]
+<6> Called when the stream return an error, by default the error is logged. Usually it is recommended to close the connection: ```client.close()``` [_Optional_ ]
+<7> Call when an error occurs, mainly when opening the event source, by default the error is logged but it is recommended to close the connection: ```client.close()``` [_Optional_ ]
+<10> Open the connection with the server and start streamdata.
 
 
 === RxJava based API
@@ -112,7 +114,7 @@ String appKey = "YOUR OWN APP KEY";                                             
 
 StreamdataClient.createRxJavaClient(apiURL, appKey)
             .addHeader("X-MYAPI-POLLER", "Polled By SD.io")                     # <2>
-            .useJsonPatch(true)                                             # <3>
+            .useJsonPatch(true)                                                 # <3>
             .toFlowable()                                                       # <4>
             // here you can add operator to manipulate the flow
             .subscribe(event -> {                                               # <5>
@@ -129,7 +131,7 @@ StreamdataClient.createRxJavaClient(apiURL, appKey)
 <1> Same as above
 <2> Same as above
 <3> Same as above
-<4> Once configured you can start manipulating you data
+<4> Once configured you can start manipulating you data or use specific schedulers 
 <5> An example without using any rx operators before show you available methods on event
 <6> Shis will stop the flowable and disconnect the event source
 
