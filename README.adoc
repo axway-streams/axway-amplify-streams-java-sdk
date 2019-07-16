@@ -1,10 +1,8 @@
 
-== Streamdata.io Java SDK
+== Axway AMPLIFY Streams Java SDK
 
 
 === What does the API do?
-
-It remove the plumbing between you and streamdata.io once you have an API ready to use, you can use the code above.
 
 It connects to the server with some your API URL and your credentials (API key) and you get notified using either
 
@@ -15,7 +13,7 @@ You can choose to receive snapshots only or one snapshot and then patches you do
 
 === Step by step setup to run demo
 
-* Create an free account on streamdata.io https://portal.streamdata.io/#/register to get an App token.
+* Create an free account on Axway AMPLIFY Streams https://portal.streamdata.io/#/register to get an App token.
 * Clone project, edit Main.java and replace [YOUR TOKEN HERE] with your App token.
 * Make sure you have Java 8+ installed
 * Make sure you have maven 3.0+ installed
@@ -25,7 +23,7 @@ You can choose to receive snapshots only or one snapshot and then patches you do
 
 * Run sample from a terminal:
 
-    `java -jar target/streamdataio-sdk-java-1.0.jar`
+    `java -jar target/streamdataio-java-sdk-1.0.jar`
 
 * You should see data and patches pushed in your application and displayed on your terminal.
 * You can build the jar on your own and use provided classes to use this API.
@@ -151,3 +149,20 @@ Above, an example of an error so you can get more detailed informations.
     "sessionId":"62fd67bc-d090-4333-a783-d94b366f55f4"
 }
 ```
+
+== Contributing
+
+Please read
+https://github.com/axway-amplify-streams/Common/blob/master/Contributing.md[Contributing.md]
+for details on our code of conduct, and the process for submitting pull
+requests to us.
+
+== Team
+
+image:https://github.com/axway-amplify-streams/Common/blob/master/img/AxwayLogoSmall.png[alt
+text,title="Axway logo"] Axway Team
+
+== License
+
+https://github.com/axway-amplify-streams/Common/blob/master/LICENSE[Apache
+License 2.0]
